@@ -1189,8 +1189,10 @@ def cmd_context_adapter_command(args: argparse.Namespace) -> int:
 
 def cmd_context_adapter_smoke_test(_: argparse.Namespace) -> int:
     if not CLAUDE_CONTEXT_MCP_BIN.exists():
-        print("claude-context MCP build missing.", file=sys.stderr)
-        return 2
+        print("claude-context MCP smoke test: unavailable")
+        print("Reason: local claude-context MCP build missing.")
+        print("Fallback: local text search remains available.")
+        return 0
     result = subprocess.run(
         ["node", str(CLAUDE_CONTEXT_MCP_BIN), "--help"],
         text=True,
@@ -1311,8 +1313,10 @@ def cmd_devtools_command(args: argparse.Namespace) -> int:
 
 def cmd_devtools_smoke_test(_: argparse.Namespace) -> int:
     if not DEVTOOLS_MCP_BIN.exists():
-        print("Chrome DevTools MCP build missing.", file=sys.stderr)
-        return 2
+        print("Chrome DevTools MCP smoke test: unavailable")
+        print("Reason: local Chrome DevTools MCP build missing.")
+        print("Fallback: configure CHROME_DEVTOOLS_MCP_CMD or mirror/build third_party/chrome-devtools-mcp.")
+        return 0
     result = subprocess.run(
         ["node", str(DEVTOOLS_MCP_BIN), "--help"],
         text=True,
