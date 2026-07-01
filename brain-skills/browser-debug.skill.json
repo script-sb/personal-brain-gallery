@@ -1,0 +1,11 @@
+{
+  "name": "browser-debug",
+  "description": "Inspect a local or user-approved browser target with Chrome DevTools MCP.",
+  "triggers": ["console error", "network error", "frontend broken", "debug page"],
+  "permission_level": "confirm-browser-session",
+  "inputs": ["url", "symptom"],
+  "outputs": ["console summary", "network summary", "suspected cause", "next action"],
+  "tool_wrapper": "brain_core devtools",
+  "failure_behavior": "Return setup instructions if CHROME_DEVTOOLS_MCP_CMD is not configured."
+}
+

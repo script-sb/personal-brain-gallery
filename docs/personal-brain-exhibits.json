@@ -1,0 +1,127 @@
+{
+  "meta": {
+    "id": "personal-brain-museum",
+    "title": "个人副脑展馆",
+    "source": "Adapted from code2art museum exhibit protocol",
+    "updated_at": "2026-07-01",
+    "mode": "local-first"
+  },
+  "routes": [
+    {
+      "id": "quick",
+      "label": "快速认识",
+      "minutes": 5,
+      "summary": "先看副脑能做什么、不会擅自做什么、当前启用哪些模块。"
+    },
+    {
+      "id": "builder",
+      "label": "建设路线",
+      "minutes": 15,
+      "summary": "从展品协议、记忆、上下文、工具和安全边界理解整个系统。"
+    },
+    {
+      "id": "research",
+      "label": "研究路线",
+      "minutes": 30,
+      "summary": "查看 GitHub 镜像、开源项目吸收方式、长期演进和多人协作入口。"
+    }
+  ],
+  "exhibits": [
+    {
+      "id": "pb-001",
+      "type": "system",
+      "title": "Jarvis 对话中枢",
+      "author": "Personal Brain",
+      "year": "2026",
+      "tools": ["Codex", "Local CLI", "Browser Console"],
+      "description": "统一接收任务，输出理解、记忆、计划、确认动作和下一步。",
+      "process": "先做只读规划，再通过权限网关决定是否执行。",
+      "status": "实验中",
+      "risk": "中",
+      "room": "atrium",
+      "color": "#67d9ff",
+      "position": [0, 1.6, -7.4],
+      "license": "local-private"
+    },
+    {
+      "id": "pb-002",
+      "type": "memory",
+      "title": "长期记忆",
+      "author": "Personal Brain",
+      "year": "2026",
+      "tools": ["SQLite", "Memory Writer"],
+      "description": "保存偏好、项目事实、失败经验和可复用结论。",
+      "process": "对话后生成记忆候选，由用户确认后写入。",
+      "status": "已启用",
+      "risk": "低",
+      "room": "archive",
+      "color": "#8effc1",
+      "position": [-5.8, 1.3, -1.4],
+      "license": "local-private"
+    },
+    {
+      "id": "pb-003",
+      "type": "context",
+      "title": "上下文搜索",
+      "author": "Personal Brain",
+      "year": "2026",
+      "tools": ["ripgrep", "Local Index", "Code Search"],
+      "description": "从本地代码、文档和知识库中找到任务相关片段。",
+      "process": "默认只读检索，命中结果进入计划上下文。",
+      "status": "已启用",
+      "risk": "低",
+      "room": "archive",
+      "color": "#4d8dff",
+      "position": [-3.8, 2.2, -4.8],
+      "license": "local-private"
+    },
+    {
+      "id": "pb-004",
+      "type": "tool",
+      "title": "工具与浏览器调试",
+      "author": "Personal Brain",
+      "year": "2026",
+      "tools": ["DevTools MCP", "Browser", "Terminal"],
+      "description": "在确认后读取页面状态、控制台、网络请求和本地命令输出。",
+      "process": "外部会话、写文件、运行命令都必须通过确认边界。",
+      "status": "需确认",
+      "risk": "高",
+      "room": "tooling",
+      "color": "#ffbf69",
+      "position": [4.4, 1.4, -2.6],
+      "license": "local-private"
+    },
+    {
+      "id": "pb-005",
+      "type": "github",
+      "title": "GitHub 能力镜像",
+      "author": "Personal Brain",
+      "year": "2026",
+      "tools": ["GitHub Registry", "third_party", "Mirror Audit"],
+      "description": "发现、镜像、审计和包装开源项目，避免直接把外部代码接入核心。",
+      "process": "先 mirror，再 audit，最后按 wrapper、CLI、MCP 或 API 接入。",
+      "status": "实验中",
+      "risk": "中",
+      "room": "tooling",
+      "color": "#ff5db8",
+      "position": [6.2, 2.5, -6.2],
+      "license": "mixed"
+    },
+    {
+      "id": "pb-006",
+      "type": "safety",
+      "title": "权限网关",
+      "author": "Personal Brain",
+      "year": "2026",
+      "tools": ["Confirm Policy", "Run Log", "Human Review"],
+      "description": "把可自动完成的读操作和必须确认的高风险动作分开。",
+      "process": "写文件、删除、发送、凭据、桌面控制和外部账号变更都需要确认。",
+      "status": "已启用",
+      "risk": "关键",
+      "room": "gateway",
+      "color": "#d9f6ff",
+      "position": [0, 2.4, -11.2],
+      "license": "local-private"
+    }
+  ]
+}

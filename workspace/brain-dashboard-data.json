@@ -1,0 +1,65 @@
+{
+  "generated_at": "2026-07-01T02:29:32+00:00",
+  "mode": "local-snapshot",
+  "summary": {
+    "registry_projects": 17,
+    "integrate": 4,
+    "mirror": 9,
+    "watch": 4,
+    "runs": 4,
+    "memories": 8,
+    "video_notes": 5
+  },
+  "modules": [
+    {
+      "id": "memory",
+      "name": "长期记忆",
+      "status": "已启用",
+      "summary": "SQLite 记忆源可用，当前 8 条记忆。"
+    },
+    {
+      "id": "context",
+      "name": "上下文搜索",
+      "status": "已启用",
+      "summary": "本地文本搜索可用，claude-context 处于适配器验证阶段。"
+    },
+    {
+      "id": "devtools",
+      "name": "浏览器调试",
+      "status": "需确认",
+      "summary": "Chrome DevTools MCP 已构建，浏览器会话访问需要用户确认。"
+    },
+    {
+      "id": "workspace",
+      "name": "本地工作区",
+      "status": "已启用",
+      "summary": "本地工作区门面可用，仅处理本机 workspace 文件。"
+    },
+    {
+      "id": "video",
+      "name": "视频读取",
+      "status": "已启用",
+      "summary": "视频链接解析和结构化笔记可用，当前 5 条视频笔记。"
+    },
+    {
+      "id": "funds",
+      "name": "指数基金教育",
+      "status": "已启用",
+      "summary": "可生成教育性风险画像、配置模板、评分和再平衡提示。"
+    },
+    {
+      "id": "email",
+      "name": "邮箱 MCP",
+      "status": "暂停",
+      "summary": "Gmail/163 授权测试已尝试，因 IMAP 网络延迟暂停读取能力。"
+    }
+  ],
+  "recent": [
+    "运行 #4 [completed] 生成干净的本地大脑运行示例",
+    "运行 #3 [completed] Test workflow local task",
+    "运行 #2 [completed] 总结当前本地大脑状态",
+    "运行 #1 [planned] Evaluate a GitHub personal assistant framework before integrating it",
+    "记忆 #16 [video,note] 视频笔记：Codex生成PPT效果展示。ppt-master。摘要：抖音图文笔记。标题显示作者在展示 Codex 生成 PPT 的效果，关键词包含 ppt-ma",
+    "记忆 #15 [video,note] 视频笔记：开发没审美怎么做产品？GitHub神级项目一键复刻顶级UI！ 没有 UI 设计师，独立开发者怎么做出能卖出去的高颜值产品？光靠写 Prom...。摘要"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "local-context-search",
+  "description": "Search local project files before planning or answering.",
+  "triggers": ["find in repo", "how does this project work", "where is"],
+  "permission_level": "read-only",
+  "inputs": ["query", "path"],
+  "outputs": ["file", "line", "match"],
+  "tool_wrapper": "brain_core context search",
+  "failure_behavior": "Report missing path or no matches."
+}
+

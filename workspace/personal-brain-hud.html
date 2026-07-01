@@ -1,0 +1,1648 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>个人副脑 | 能力可视化</title>
+  <style>
+    :root {
+      --bg: #030913;
+      --panel: rgba(7, 20, 35, 0.72);
+      --panel-strong: rgba(9, 32, 52, 0.86);
+      --line: rgba(121, 218, 255, 0.38);
+      --cyan: #67d9ff;
+      --blue: #4d8dff;
+      --ice: #d9f6ff;
+      --amber: #ffbf69;
+      --pink: #ff5db8;
+      --green: #8effc1;
+      --muted: #86a7bd;
+      --text: #e9fbff;
+      --danger: #ff6c82;
+      color-scheme: dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+      overflow-x: hidden;
+    }
+
+    body {
+      min-height: 100vh;
+    }
+
+    .scene {
+      position: relative;
+      min-height: 100vh;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(23, 116, 190, 0.26), transparent 30%),
+        radial-gradient(circle at 78% 18%, rgba(255, 93, 184, 0.14), transparent 22%),
+        linear-gradient(140deg, #020610 0%, #041526 48%, #020711 100%);
+    }
+
+    #dataCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      opacity: 0.86;
+    }
+
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px);
+      background-size: 100% 4px, 46px 100%;
+      mask-image: radial-gradient(circle at 50% 45%, black 0%, transparent 82%);
+    }
+
+    .shell {
+      position: relative;
+      z-index: 2;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+      padding: 22px clamp(16px, 3vw, 44px) 18px;
+    }
+
+    .topbar,
+    .footer {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      min-height: 48px;
+      border-block: 1px solid rgba(121, 218, 255, 0.16);
+      background: linear-gradient(90deg, transparent, rgba(20, 75, 112, 0.18), transparent);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      color: var(--cyan);
+      background: rgba(103, 217, 255, 0.08);
+      box-shadow: 0 0 28px rgba(103, 217, 255, 0.28);
+      font-weight: 800;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(18px, 2vw, 26px);
+      line-height: 1.1;
+      font-weight: 780;
+    }
+
+    .brand p,
+    .footer p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .status-strip {
+      justify-self: center;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+      color: var(--ice);
+      font-size: 12px;
+    }
+
+    .view-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .signal {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border: 1px solid rgba(121, 218, 255, 0.28);
+      background: rgba(5, 17, 29, 0.64);
+      min-height: 32px;
+    }
+
+    .control-button {
+      min-height: 32px;
+      padding: 7px 10px;
+      border: 1px solid rgba(121, 218, 255, 0.28);
+      background: rgba(5, 17, 29, 0.64);
+      color: var(--ice);
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .control-button[aria-pressed="true"] {
+      color: #03111c;
+      background: linear-gradient(90deg, var(--cyan), var(--green));
+      box-shadow: 0 0 18px rgba(103, 217, 255, 0.34);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 14px var(--green);
+    }
+
+    .clock {
+      justify-self: end;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .clock strong {
+      display: block;
+      font-size: clamp(18px, 2vw, 24px);
+      color: var(--cyan);
+      font-weight: 760;
+    }
+
+    .console {
+      display: grid;
+      grid-template-columns: minmax(250px, 0.8fr) minmax(360px, 1.42fr) minmax(250px, 0.8fr);
+      gap: clamp(14px, 1.6vw, 22px);
+      align-items: stretch;
+      min-height: 0;
+    }
+
+    .column {
+      display: grid;
+      grid-template-rows: repeat(4, minmax(0, auto));
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .panel {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid rgba(121, 218, 255, 0.22);
+      background:
+        linear-gradient(135deg, rgba(93, 188, 255, 0.12), transparent 36%),
+        var(--panel);
+      box-shadow: inset 0 0 24px rgba(103, 217, 255, 0.06), 0 16px 42px rgba(0, 0, 0, 0.3);
+      clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.13);
+      pointer-events: none;
+    }
+
+    .panel-inner {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 22px;
+      color: var(--cyan);
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 760;
+    }
+
+    .panel-header span:last-child {
+      color: var(--muted);
+      font-weight: 620;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      min-height: 66px;
+      padding: 10px;
+      border: 1px solid rgba(121, 218, 255, 0.2);
+      background: rgba(2, 9, 18, 0.58);
+    }
+
+    .metric strong {
+      display: block;
+      color: var(--ice);
+      font-size: 21px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.25;
+    }
+
+    .feed {
+      display: grid;
+      gap: 9px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .feed-line {
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-size: 12px;
+      line-height: 1.35;
+      color: #b9d9e7;
+    }
+
+    .feed-line code {
+      color: var(--amber);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .bar-list {
+      display: grid;
+      gap: 11px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 88px 1fr 42px;
+      gap: 10px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .bar-track {
+      height: 8px;
+      border: 1px solid rgba(121, 218, 255, 0.22);
+      background: rgba(1, 8, 16, 0.62);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: var(--value);
+      background: linear-gradient(90deg, var(--blue), var(--cyan), var(--green));
+      box-shadow: 0 0 14px rgba(103, 217, 255, 0.72);
+    }
+
+    .core-stage {
+      position: relative;
+      min-height: 620px;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(121, 218, 255, 0.24);
+      background:
+        radial-gradient(circle at center, rgba(90, 205, 255, 0.12), transparent 45%),
+        linear-gradient(180deg, rgba(5, 18, 33, 0.72), rgba(2, 7, 13, 0.78));
+      box-shadow: inset 0 0 52px rgba(103, 217, 255, 0.08);
+      clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px);
+    }
+
+    .gallery-canvas-wrap {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.78;
+      mix-blend-mode: screen;
+    }
+
+    #gallery3d {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .core-stage::after {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border: 1px solid rgba(121, 218, 255, 0.1);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .orbital {
+      position: relative;
+      z-index: 2;
+      width: min(68vw, 640px);
+      max-width: 100%;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+    }
+
+    .ring {
+      position: absolute;
+      inset: var(--inset);
+      border: 1px solid rgba(121, 218, 255, 0.42);
+      border-radius: 50%;
+      animation: spin var(--speed) linear infinite;
+      box-shadow: 0 0 34px rgba(103, 217, 255, 0.16);
+    }
+
+    .ring::before,
+    .ring::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      background: var(--accent, var(--cyan));
+      box-shadow: 0 0 18px var(--accent, var(--cyan));
+    }
+
+    .ring::before {
+      width: 9px;
+      height: 9px;
+      top: 11%;
+      left: 50%;
+    }
+
+    .ring::after {
+      width: 6px;
+      height: 6px;
+      right: 13%;
+      bottom: 21%;
+    }
+
+    .ring:nth-child(2) {
+      animation-direction: reverse;
+    }
+
+    .ring:nth-child(3) {
+      border-style: dashed;
+    }
+
+    .core {
+      position: relative;
+      width: min(42vw, 360px);
+      max-width: 82%;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, rgba(217, 246, 255, 0.85) 0 5%, rgba(103, 217, 255, 0.3) 6% 16%, transparent 17%),
+        conic-gradient(from 120deg, rgba(77, 141, 255, 0.08), rgba(103, 217, 255, 0.42), rgba(142, 255, 193, 0.16), rgba(255, 93, 184, 0.12), rgba(77, 141, 255, 0.08));
+      border: 1px solid rgba(217, 246, 255, 0.62);
+      box-shadow: 0 0 36px rgba(103, 217, 255, 0.56), inset 0 0 58px rgba(103, 217, 255, 0.18);
+    }
+
+    .core-triangle {
+      width: 42%;
+      aspect-ratio: 1;
+      clip-path: polygon(50% 0, 100% 88%, 0 88%);
+      background:
+        linear-gradient(150deg, rgba(217, 246, 255, 0.92), rgba(65, 199, 255, 0.34) 42%, rgba(7, 18, 30, 0.86) 43%),
+        var(--cyan);
+      box-shadow: 0 0 26px rgba(103, 217, 255, 0.86);
+      animation: pulse 2.8s ease-in-out infinite;
+    }
+
+    .core-label {
+      position: absolute;
+      bottom: 20%;
+      width: 72%;
+      text-align: center;
+      color: var(--ice);
+      font-size: clamp(13px, 1.5vw, 18px);
+      line-height: 1.35;
+      text-shadow: 0 0 18px rgba(103, 217, 255, 0.78);
+    }
+
+    .core-label strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: clamp(22px, 3vw, 38px);
+      font-weight: 820;
+    }
+
+    .node {
+      position: absolute;
+      width: clamp(82px, 11vw, 126px);
+      min-height: 48px;
+      display: grid;
+      place-items: center;
+      padding: 8px;
+      border: 1px solid rgba(121, 218, 255, 0.32);
+      background: rgba(3, 12, 23, 0.72);
+      color: var(--ice);
+      font: inherit;
+      font-size: 12px;
+      text-align: center;
+      cursor: pointer;
+      box-shadow: 0 0 24px rgba(103, 217, 255, 0.12);
+    }
+
+    .node:hover,
+    .node.is-active {
+      color: #03111c;
+      background: linear-gradient(90deg, var(--cyan), var(--green));
+      border-color: rgba(217, 246, 255, 0.88);
+      box-shadow: 0 0 28px rgba(103, 217, 255, 0.42);
+    }
+
+    .node-memory { top: 6%; left: 42%; }
+    .node-context { top: 23%; right: 2%; }
+    .node-tools { right: 7%; bottom: 20%; }
+    .node-skills { bottom: 8%; left: 42%; }
+    .node-mirrors { left: 5%; bottom: 20%; }
+    .node-gateway { top: 23%; left: 2%; }
+
+    .node-detail {
+      position: absolute;
+      top: 20px;
+      left: 22px;
+      width: min(280px, calc(100% - 44px));
+      padding: 12px;
+      border: 1px solid rgba(121, 218, 255, 0.24);
+      background: rgba(1, 8, 16, 0.7);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      z-index: 4;
+    }
+
+    .node-detail strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--cyan);
+      font-size: 14px;
+    }
+
+    .center-caption {
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      bottom: 20px;
+      z-index: 4;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .chip {
+      min-height: 44px;
+      padding: 9px 10px;
+      border: 1px solid rgba(121, 218, 255, 0.24);
+      background: rgba(0, 8, 16, 0.56);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .chip strong {
+      display: block;
+      color: var(--cyan);
+      font-size: 13px;
+      margin-bottom: 3px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .jarvis-console {
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      bottom: 82px;
+      z-index: 4;
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid rgba(121, 218, 255, 0.24);
+      background: rgba(1, 8, 16, 0.72);
+      box-shadow: 0 0 30px rgba(103, 217, 255, 0.1);
+    }
+
+    .jarvis-form {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .jarvis-input {
+      min-height: 48px;
+      max-height: 110px;
+      resize: vertical;
+      padding: 10px 12px;
+      border: 1px solid rgba(121, 218, 255, 0.24);
+      background: rgba(2, 9, 18, 0.78);
+      color: var(--ice);
+      font: inherit;
+      font-size: 13px;
+      line-height: 1.4;
+      outline: none;
+    }
+
+    .jarvis-input:focus {
+      border-color: rgba(103, 217, 255, 0.78);
+      box-shadow: 0 0 18px rgba(103, 217, 255, 0.18);
+    }
+
+    .jarvis-submit {
+      min-width: 98px;
+      padding: 0 14px;
+      border: 1px solid rgba(217, 246, 255, 0.42);
+      background: linear-gradient(90deg, rgba(77, 141, 255, 0.78), rgba(103, 217, 255, 0.82));
+      color: #02101b;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 760;
+      cursor: pointer;
+    }
+
+    .jarvis-response {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      max-height: 228px;
+      overflow: auto;
+    }
+
+    .response-card {
+      padding: 9px 10px;
+      border: 1px solid rgba(121, 218, 255, 0.18);
+      background: rgba(2, 8, 15, 0.56);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.38;
+    }
+
+    .response-card.wide {
+      grid-column: 1 / -1;
+    }
+
+    .response-card strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--cyan);
+      font-size: 13px;
+    }
+
+    .response-card ul,
+    .response-card ol {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .response-card li + li {
+      margin-top: 4px;
+    }
+
+    .confirm-note {
+      color: var(--amber);
+    }
+
+    .capability-list {
+      display: grid;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .capability {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 48px;
+      padding: 9px;
+      border: 1px solid rgba(121, 218, 255, 0.18);
+      background: rgba(2, 8, 15, 0.52);
+    }
+
+    .cap-icon {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(121, 218, 255, 0.32);
+      color: var(--cyan);
+      font-weight: 760;
+    }
+
+    .capability strong {
+      display: block;
+      font-size: 13px;
+      color: var(--ice);
+    }
+
+    .capability span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.25;
+    }
+
+    .mode {
+      color: var(--green);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .mode.paused {
+      color: var(--amber);
+    }
+
+    .trust-grid,
+    .use-case-grid {
+      display: grid;
+      gap: 9px;
+    }
+
+    .trust-item,
+    .use-case {
+      padding: 9px 10px;
+      border: 1px solid rgba(121, 218, 255, 0.18);
+      background: rgba(2, 8, 15, 0.52);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .trust-item strong,
+    .use-case strong {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--ice);
+      font-size: 13px;
+    }
+
+    .trust-item.warn strong {
+      color: var(--amber);
+    }
+
+    .data-source {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .radar {
+      position: relative;
+      flex: 1;
+      min-height: 178px;
+      border: 1px solid rgba(121, 218, 255, 0.2);
+      background:
+        linear-gradient(transparent 49%, rgba(121, 218, 255, 0.12) 50%, transparent 51%),
+        linear-gradient(90deg, transparent 49%, rgba(121, 218, 255, 0.12) 50%, transparent 51%),
+        radial-gradient(circle, transparent 0 30%, rgba(121, 218, 255, 0.08) 31% 32%, transparent 33% 55%, rgba(121, 218, 255, 0.08) 56% 57%, transparent 58%);
+      overflow: hidden;
+    }
+
+    .radar::before {
+      content: "";
+      position: absolute;
+      inset: -30%;
+      background: conic-gradient(from 0deg, rgba(103, 217, 255, 0.36), transparent 18%, transparent);
+      animation: spin 4.5s linear infinite;
+    }
+
+    .radar-point {
+      position: absolute;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 16px var(--amber);
+    }
+
+    .timeline {
+      display: grid;
+      gap: 12px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      gap: 10px;
+      align-items: start;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .step i {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(121, 218, 255, 0.3);
+      color: var(--cyan);
+      font-style: normal;
+      font-size: 11px;
+    }
+
+    .step strong {
+      color: var(--ice);
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .footer {
+      grid-template-columns: 1fr auto;
+      padding-top: 8px;
+      min-height: 40px;
+    }
+
+    .footer .protocol {
+      justify-self: end;
+      color: var(--cyan);
+      font-size: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    body[data-view="guest"] .local-only {
+      display: none;
+    }
+
+    body[data-motion="low"] #dataCanvas {
+      opacity: 0.24;
+    }
+
+    body[data-motion="low"] .gallery-canvas-wrap {
+      opacity: 0.34;
+    }
+
+    body[data-motion="low"] .ring,
+    body[data-motion="low"] .core-triangle,
+    body[data-motion="low"] .radar::before {
+      animation: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.72; transform: scale(0.98); }
+      50% { opacity: 1; transform: scale(1.05); }
+    }
+
+    @media (max-width: 1120px) {
+      .console {
+        grid-template-columns: 1fr;
+      }
+
+      .column {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: none;
+      }
+
+      .core-stage {
+        order: -1;
+        min-height: 760px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .shell {
+        padding: 14px;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 10px 0;
+      }
+
+      .clock,
+      .status-strip {
+        justify-self: start;
+        text-align: left;
+      }
+
+      .column {
+        grid-template-columns: 1fr;
+      }
+
+      .core-stage {
+        min-height: 820px;
+      }
+
+      .orbital {
+        width: min(92vw, 480px);
+      }
+
+      .core {
+        width: min(68vw, 280px);
+      }
+
+      .node {
+        width: 86px;
+        font-size: 10px;
+        min-height: 42px;
+      }
+
+      .node-detail {
+        top: auto;
+        bottom: 292px;
+        left: 12px;
+        right: 12px;
+        width: auto;
+      }
+
+      .jarvis-console {
+        left: 12px;
+        right: 12px;
+        bottom: 102px;
+      }
+
+      .jarvis-form,
+      .jarvis-response {
+        grid-template-columns: 1fr;
+      }
+
+      .jarvis-submit {
+        min-height: 40px;
+      }
+
+      .center-caption {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        left: 12px;
+        right: 12px;
+      }
+
+      .footer {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .footer .protocol {
+        justify-self: start;
+      }
+    }
+  </style>
+</head>
+<body data-view="guest" data-motion="full">
+  <div class="scene">
+    <canvas id="dataCanvas" aria-hidden="true"></canvas>
+    <div class="scanlines" aria-hidden="true"></div>
+
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">LB</div>
+          <div>
+            <h1>个人副脑能力矩阵</h1>
+            <p>本地优先的个人智能控制台 · Local-first personal intelligence control plane</p>
+          </div>
+        </div>
+        <div class="status-strip" aria-label="系统状态">
+          <span class="signal"><i class="dot"></i> 核心在线 · CORE ONLINE</span>
+          <span class="signal">风险动作需确认 · CONFIRM BEFORE RISK</span>
+          <span class="signal">本地记忆运行中 · LOCAL MEMORY ACTIVE</span>
+          <div class="view-controls" aria-label="视图控制">
+            <button class="control-button" id="guestMode" type="button" aria-pressed="true">访客模式</button>
+            <button class="control-button" id="localMode" type="button" aria-pressed="false">本机模式</button>
+            <button class="control-button" id="motionToggle" type="button" aria-pressed="false">低动效</button>
+          </div>
+        </div>
+        <div class="clock">
+          <strong id="clock">--:--:--</strong>
+          <p>后台认知循环 · background cognition loop</p>
+        </div>
+      </header>
+
+      <section class="console" aria-label="个人副脑可视化控制台">
+        <aside class="column">
+          <section class="panel">
+            <div class="panel-inner">
+              <div class="panel-header"><span>核心遥测 · Core Telemetry</span><span>V1.0</span></div>
+              <div class="metric-grid">
+                <div class="metric"><strong>已启用</strong><span>记忆、上下文、运行日志、本地工作区</span></div>
+                <div class="metric"><strong>实验中</strong><span>DevTools、GitHub 镜像、代码语义检索</span></div>
+                <div class="metric"><strong id="registryCount">16</strong><span>候选开源项目持续观察</span></div>
+                <div class="metric"><strong>需确认</strong><span>写文件、命令、浏览器、桌面和凭据动作</span></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-inner">
+              <div class="panel-header"><span>实时思考流 · Live Thought Stream</span><span>追踪 · TRACE</span></div>
+              <div class="feed">
+                <div class="feed-line"><code>00:01</code><span>检索长期记忆：偏好、项目上下文、失败经验。</span></div>
+                <div class="feed-line"><code>00:04</code><span>扫描本地文件与代码语义，构建任务上下文。</span></div>
+                <div class="feed-line"><code>00:07</code><span>根据权限策略拆分自动动作与确认动作。</span></div>
+                <div class="feed-line"><code>00:11</code><span>选择工具：GitHub、浏览器、DevTools、终端、工作区。</span></div>
+                <div class="feed-line"><code>00:16</code><span>写入结果摘要，供下一次任务复用。</span></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-inner">
+              <div class="panel-header"><span>能力负载 · Capability Load</span><span>扫描 · SCAN</span></div>
+              <div class="bar-list">
+                <div class="bar-row"><span>记忆</span><div class="bar-track"><div class="bar-fill" style="--value: 86%"></div></div><span>86%</span></div>
+                <div class="bar-row"><span>上下文</span><div class="bar-track"><div class="bar-fill" style="--value: 74%"></div></div><span>74%</span></div>
+                <div class="bar-row"><span>工具</span><div class="bar-track"><div class="bar-fill" style="--value: 68%"></div></div><span>68%</span></div>
+                <div class="bar-row"><span>GitHub</span><div class="bar-track"><div class="bar-fill" style="--value: 82%"></div></div><span>82%</span></div>
+                <div class="bar-row"><span>安全</span><div class="bar-track"><div class="bar-fill" style="--value: 94%"></div></div><span>94%</span></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-inner">
+              <div class="panel-header"><span>可信边界 · Trust Boundary</span><span>默认安全</span></div>
+              <div class="trust-grid">
+                <div class="trust-item"><strong>我能做什么</strong>理解任务、检索记忆、搜索本地上下文、生成计划、总结结果和沉淀经验。</div>
+                <div class="trust-item"><strong>我如何协作</strong>先解释判断，再执行可逆步骤；高风险动作需要你确认。</div>
+                <div class="trust-item warn"><strong>我不会擅自做什么</strong>不会自动发邮件、删除文件、上传密钥、控制桌面或修改外部账号设置。</div>
+              </div>
+            </div>
+          </section>
+        </aside>
+
+        <section class="core-stage">
+          <div class="gallery-canvas-wrap" aria-hidden="true">
+            <canvas id="gallery3d"></canvas>
+          </div>
+          <div class="orbital" aria-label="副脑核心">
+            <div class="ring" style="--inset: 0%; --speed: 30s; --accent: var(--cyan)"></div>
+            <div class="ring" style="--inset: 9%; --speed: 22s; --accent: var(--amber)"></div>
+            <div class="ring" style="--inset: 18%; --speed: 16s; --accent: var(--green)"></div>
+            <div class="ring" style="--inset: 29%; --speed: 11s; --accent: var(--pink)"></div>
+            <button class="node node-memory is-active" type="button" data-node="memory">记忆<br>Memory</button>
+            <button class="node node-context" type="button" data-node="context">上下文<br>Context</button>
+            <button class="node node-tools" type="button" data-node="tools">工具<br>Tools</button>
+            <button class="node node-skills" type="button" data-node="skills">技能<br>Skills</button>
+            <button class="node node-mirrors" type="button" data-node="mirrors">镜像<br>Mirrors</button>
+            <button class="node node-gateway" type="button" data-node="gateway">权限<br>Gateway</button>
+            <div class="core">
+              <div class="core-triangle"></div>
+              <div class="core-label">
+                <strong>本地副脑</strong>
+                正在后台高速组织信息、计划动作、沉淀经验
+              </div>
+            </div>
+          </div>
+
+          <div class="node-detail" id="nodeDetail">
+            <strong>记忆 Memory</strong>
+            记录偏好、项目事实、失败经验与可复用结论；默认保存在本地 SQLite。
+          </div>
+
+          <section class="jarvis-console" aria-label="Jarvis 对话中枢">
+            <form class="jarvis-form" id="jarvisForm">
+              <textarea class="jarvis-input" id="jarvisInput" rows="2" placeholder="告诉我一个任务，例如：帮我规划个人副脑下一步，或分析这个仓库的改进方向。"></textarea>
+              <button class="jarvis-submit" type="submit">生成计划</button>
+            </form>
+            <div class="jarvis-response" id="jarvisResponse">
+              <div class="response-card wide">
+                <strong>Jarvis 中枢待命</strong>
+                输入任务后，我会按“理解、相关记忆、计划、需确认动作、下一步”输出。未确认前不会执行高风险动作。
+              </div>
+            </div>
+          </section>
+
+          <div class="center-caption">
+            <div class="chip"><strong>SQLite 记忆</strong>长期记忆源</div>
+            <div class="chip"><strong>代码上下文</strong>代码与文件检索</div>
+            <div class="chip"><strong>MCP 工具</strong>浏览器与外部工具</div>
+            <div class="chip local-only"><strong>运行日志</strong><span id="runCount">4</span> 条可追踪任务闭环</div>
+          </div>
+        </section>
+
+        <aside class="column">
+          <section class="panel">
+            <div class="panel-inner">
+              <div class="panel-header"><span>模块注册表 · Module Registry</span><span>就绪 · READY</span></div>
+              <div class="capability-list">
+                <div class="capability"><div class="cap-icon">M</div><div><strong>长期记忆</strong><span>记录偏好、项目事实、失败经验与复用结论。</span></div><div class="mode">已启用</div></div>
+                <div class="capability"><div class="cap-icon">C</div><div><strong>上下文搜索</strong><span>从本地文件、代码与知识库里提取相关片段。</span></div><div class="mode">已启用</div></div>
+                <div class="capability"><div class="cap-icon">D</div><div><strong>浏览器调试</strong><span>通过 DevTools/MCP 分析页面、网络和控制台。</span></div><div class="mode">需确认</div></div>
+                <div class="capability"><div class="cap-icon">G</div><div><strong>GitHub 驱动</strong><span>发现、镜像、审计并包装开源能力。</span></div><div class="mode">实验中</div></div>
+                <div class="capability local-only"><div class="cap-icon">E</div><div><strong>邮箱 MCP</strong><span>Gmail/163 已做安全接入尝试，因 IMAP 网络延迟暂时暂停。</span></div><div class="mode paused">暂停</div></div>
+              </div>
+              <p class="data-source local-only" id="dataSource">数据源：静态默认值，等待读取本地快照。</p>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-inner">
+              <div class="panel-header"><span>交互雷达 · Interaction Radar</span><span>激活 · ACTIVE</span></div>
+              <div class="radar">
+                <span class="radar-point" style="left: 62%; top: 28%"></span>
+                <span class="radar-point" style="left: 30%; top: 58%; background: var(--green); box-shadow: 0 0 16px var(--green)"></span>
+                <span class="radar-point" style="left: 70%; top: 68%; background: var(--pink); box-shadow: 0 0 16px var(--pink)"></span>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-inner">
+              <div class="panel-header"><span>运行闭环 · Operating Loop</span><span>流程 · FLOW</span></div>
+              <div class="timeline">
+                <div class="step"><i>1</i><div><strong>理解任务</strong>提取目标、约束、风险和需要确认的动作。</div></div>
+                <div class="step"><i>2</i><div><strong>检索背景</strong>调用记忆、上下文、项目注册表与工具状态。</div></div>
+                <div class="step"><i>3</i><div><strong>规划执行</strong>把复杂任务拆成可验证的小步骤。</div></div>
+                <div class="step"><i>4</i><div><strong>安全行动</strong>读操作自动，写操作和外部动作先确认。</div></div>
+                <div class="step"><i>5</i><div><strong>沉淀经验</strong>输出结果，记录可复用的偏好和教训。</div></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-inner">
+              <div class="panel-header"><span>典型场景 · Use Cases</span><span>中文优先</span></div>
+              <div class="use-case-grid">
+                <div class="use-case"><strong>代码协作</strong>理解仓库、定位文件、生成计划、执行并验证小改动。</div>
+                <div class="use-case"><strong>资料整理</strong>把本地文档、网页线索和项目事实组织成可复用上下文。</div>
+                <div class="use-case"><strong>浏览器调试</strong>在确认后读取控制台、网络请求和页面状态，辅助定位问题。</div>
+                <div class="use-case"><strong>GitHub 项目研究</strong>发现、镜像、审计开源项目，再安全包装成能力模块。</div>
+                <div class="use-case"><strong>投资教育模块</strong>用指数基金模板做教育性分析，不替代个人化理财建议。</div>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </section>
+
+      <footer class="footer">
+        <p>个人副脑可视化 · 用于互相了解、能力发现与信任校准。</p>
+        <div class="protocol">协议：jarvis-console / planning-only</div>
+      </footer>
+    </main>
+  </div>
+
+  <script type="module">
+    import * as THREE from "https://unpkg.com/three@0.165.0/build/three.module.js";
+
+    const galleryCanvas = document.getElementById("gallery3d");
+    const stage = document.querySelector(".core-stage");
+    const reduceMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    if (galleryCanvas && stage) {
+      const renderer = new THREE.WebGLRenderer({
+        canvas: galleryCanvas,
+        antialias: true,
+        alpha: true,
+        powerPreference: "high-performance"
+      });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
+      renderer.setClearColor(0x000000, 0);
+
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x03111c, 0.042);
+
+      const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+      camera.position.set(0, 4.4, 10.5);
+      camera.lookAt(0, 0.5, 0);
+
+      const cyan = new THREE.Color("#67d9ff");
+      const blue = new THREE.Color("#4d8dff");
+      const green = new THREE.Color("#8effc1");
+      const amber = new THREE.Color("#ffbf69");
+      const pink = new THREE.Color("#ff5db8");
+
+      scene.add(new THREE.AmbientLight(0x7fdfff, 0.28));
+
+      const coreLight = new THREE.PointLight(0x67d9ff, 5.8, 22);
+      coreLight.position.set(0, 2.6, 0);
+      scene.add(coreLight);
+
+      const sideLight = new THREE.PointLight(0xff5db8, 1.6, 18);
+      sideLight.position.set(-5, 3, 3);
+      scene.add(sideLight);
+
+      const floor = new THREE.GridHelper(18, 30, 0x67d9ff, 0x16405c);
+      floor.position.y = -1.25;
+      floor.material.transparent = true;
+      floor.material.opacity = 0.22;
+      scene.add(floor);
+
+      const orbitGroup = new THREE.Group();
+      scene.add(orbitGroup);
+
+      const ringMaterial = new THREE.LineBasicMaterial({
+        color: 0x67d9ff,
+        transparent: true,
+        opacity: 0.32
+      });
+
+      [2.5, 3.8, 5.1].forEach((radius, index) => {
+        const curve = new THREE.EllipseCurve(0, 0, radius, radius, 0, Math.PI * 2, false, 0);
+        const points = curve.getPoints(160).map((point) => new THREE.Vector3(point.x, -0.68 + index * 0.04, point.y));
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const line = new THREE.LineLoop(geometry, ringMaterial.clone());
+        line.material.opacity = 0.18 + index * 0.08;
+        orbitGroup.add(line);
+      });
+
+      const coreGeometry = new THREE.IcosahedronGeometry(0.86, 2);
+      const coreMaterial = new THREE.MeshStandardMaterial({
+        color: 0x123e62,
+        emissive: 0x2ccfff,
+        emissiveIntensity: 1.25,
+        roughness: 0.22,
+        metalness: 0.56,
+        transparent: true,
+        opacity: 0.8,
+        wireframe: true
+      });
+      const core = new THREE.Mesh(coreGeometry, coreMaterial);
+      core.position.y = 0.58;
+      scene.add(core);
+
+      const halo = new THREE.Mesh(
+        new THREE.TorusGeometry(1.45, 0.012, 8, 180),
+        new THREE.MeshBasicMaterial({ color: 0x67d9ff, transparent: true, opacity: 0.64 })
+      );
+      halo.rotation.x = Math.PI / 2;
+      halo.position.y = 0.58;
+      scene.add(halo);
+
+      const moduleData = [
+        ["记忆", cyan],
+        ["上下文", green],
+        ["工具", blue],
+        ["技能", amber],
+        ["镜像", pink],
+        ["权限", cyan],
+        ["基金", green],
+        ["日志", amber]
+      ];
+
+      const panels = new THREE.Group();
+      orbitGroup.add(panels);
+
+      const panelGeometry = new THREE.BoxGeometry(1.16, 0.72, 0.035);
+      const edgeGeometry = new THREE.EdgesGeometry(panelGeometry);
+
+      moduleData.forEach(([label, color], index) => {
+        const angle = (index / moduleData.length) * Math.PI * 2;
+        const radius = index % 2 ? 4.25 : 3.4;
+        const panel = new THREE.Group();
+        panel.position.set(Math.cos(angle) * radius, 0.26 + (index % 3) * 0.18, Math.sin(angle) * radius);
+        panel.lookAt(0, 0.4, 0);
+
+        const face = new THREE.Mesh(
+          panelGeometry,
+          new THREE.MeshStandardMaterial({
+            color: 0x071a2a,
+            emissive: color,
+            emissiveIntensity: 0.26,
+            roughness: 0.4,
+            metalness: 0.22,
+            transparent: true,
+            opacity: 0.48
+          })
+        );
+        const edge = new THREE.LineSegments(
+          edgeGeometry,
+          new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.78 })
+        );
+        panel.add(face, edge);
+
+        const spriteCanvas = document.createElement("canvas");
+        spriteCanvas.width = 256;
+        spriteCanvas.height = 96;
+        const spriteCtx = spriteCanvas.getContext("2d");
+        spriteCtx.fillStyle = "rgba(0, 0, 0, 0)";
+        spriteCtx.fillRect(0, 0, 256, 96);
+        spriteCtx.fillStyle = "#d9f6ff";
+        spriteCtx.font = "600 34px -apple-system, BlinkMacSystemFont, sans-serif";
+        spriteCtx.textAlign = "center";
+        spriteCtx.textBaseline = "middle";
+        spriteCtx.fillText(label, 128, 48);
+
+        const texture = new THREE.CanvasTexture(spriteCanvas);
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+          map: texture,
+          color: 0xffffff,
+          transparent: true,
+          opacity: 0.86
+        }));
+        sprite.scale.set(1.16, 0.44, 1);
+        sprite.position.z = 0.04;
+        panel.add(sprite);
+        panels.add(panel);
+      });
+
+      const particlesGeometry = new THREE.BufferGeometry();
+      const particleCount = 240;
+      const particlePositions = new Float32Array(particleCount * 3);
+      for (let i = 0; i < particleCount; i++) {
+        const radius = 2.2 + Math.random() * 4.6;
+        const angle = Math.random() * Math.PI * 2;
+        particlePositions[i * 3] = Math.cos(angle) * radius;
+        particlePositions[i * 3 + 1] = -0.72 + Math.random() * 3.3;
+        particlePositions[i * 3 + 2] = Math.sin(angle) * radius;
+      }
+      particlesGeometry.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
+      const particles = new THREE.Points(
+        particlesGeometry,
+        new THREE.PointsMaterial({
+          color: 0x67d9ff,
+          size: 0.035,
+          transparent: true,
+          opacity: 0.68,
+          depthWrite: false
+        })
+      );
+      scene.add(particles);
+
+      function sizeGallery() {
+        const rect = stage.getBoundingClientRect();
+        const w = Math.max(1, Math.floor(rect.width));
+        const h = Math.max(1, Math.floor(rect.height));
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      }
+
+      let galleryFrame = 0;
+      function renderGallery(time) {
+        const lowMotion = document.body.dataset.motion === "low" || reduceMotionQuery.matches;
+        const t = time * 0.001;
+        const speed = lowMotion ? 0.08 : 0.42;
+        orbitGroup.rotation.y = t * speed;
+        panels.rotation.y = Math.sin(t * 0.22) * 0.06;
+        core.rotation.x = t * 0.28;
+        core.rotation.y = t * 0.54;
+        halo.rotation.z = t * 0.36;
+        particles.rotation.y = -t * 0.09;
+        camera.position.x = Math.sin(t * 0.18) * (lowMotion ? 0.18 : 0.72);
+        camera.lookAt(0, 0.45, 0);
+        renderer.render(scene, camera);
+        galleryFrame = requestAnimationFrame(renderGallery);
+      }
+
+      const galleryObserver = new ResizeObserver(sizeGallery);
+      galleryObserver.observe(stage);
+      sizeGallery();
+      galleryFrame = requestAnimationFrame(renderGallery);
+
+      window.addEventListener("pagehide", () => {
+        cancelAnimationFrame(galleryFrame);
+        galleryObserver.disconnect();
+        renderer.dispose();
+      });
+    }
+  </script>
+
+  <script>
+    const canvas = document.getElementById("dataCanvas");
+    const ctx = canvas.getContext("2d");
+    const clock = document.getElementById("clock");
+    const guestMode = document.getElementById("guestMode");
+    const localMode = document.getElementById("localMode");
+    const motionToggle = document.getElementById("motionToggle");
+    const nodeDetail = document.getElementById("nodeDetail");
+    const registryCount = document.getElementById("registryCount");
+    const runCount = document.getElementById("runCount");
+    const dataSource = document.getElementById("dataSource");
+    const jarvisForm = document.getElementById("jarvisForm");
+    const jarvisInput = document.getElementById("jarvisInput");
+    const jarvisResponse = document.getElementById("jarvisResponse");
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+    let animationId = 0;
+    const streams = [];
+    const glyphs = "01 MEMORY CONTEXT TOOLS MCP GITHUB SAFE RUN LOGS ".split("");
+    const nodeDetails = {
+      memory: ["记忆 Memory", "记录偏好、项目事实、失败经验与可复用结论；默认保存在本地 SQLite。"],
+      context: ["上下文 Context", "检索本地文件、代码、文档和知识片段，帮任务快速找到相关背景。"],
+      tools: ["工具 Tools", "连接 GitHub、浏览器、DevTools、终端和工作区；高风险动作先确认。"],
+      skills: ["技能 Skills", "把常见任务封装成可复用能力，例如浏览器调试、代码检索和资料整理。"],
+      mirrors: ["镜像 Mirrors", "把 GitHub 项目先镜像、审计、固定版本，再决定是否包装接入。"],
+      gateway: ["权限 Gateway", "读操作优先自动；写文件、发信、删除、桌面控制、凭据操作必须确认。"]
+    };
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = width + "px";
+      canvas.style.height = height + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      streams.length = 0;
+      const count = Math.max(54, Math.floor(width / 18));
+      for (let i = 0; i < count; i++) {
+        streams.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          speed: 0.35 + Math.random() * 1.6,
+          alpha: 0.12 + Math.random() * 0.4,
+          size: 10 + Math.random() * 8
+        });
+      }
+    }
+
+    function drawGrid() {
+      ctx.save();
+      ctx.strokeStyle = "rgba(103,217,255,0.07)";
+      ctx.lineWidth = 1;
+      const step = 42;
+      for (let x = 0; x < width; x += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < height; y += step) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawStreams() {
+      ctx.save();
+      ctx.font = "12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+      for (const s of streams) {
+        const char = glyphs[Math.floor(Math.random() * glyphs.length)];
+        ctx.fillStyle = `rgba(103,217,255,${s.alpha})`;
+        ctx.font = `${s.size}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
+        ctx.fillText(char, s.x, s.y);
+        s.y += s.speed;
+        if (Math.random() > 0.993) {
+          ctx.fillStyle = "rgba(255,191,105,0.55)";
+          ctx.fillText("●", s.x + 10, s.y - 8);
+        }
+        if (s.y > height + 24) {
+          s.y = -24;
+          s.x = Math.random() * width;
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawWave(time) {
+      ctx.save();
+      ctx.lineWidth = 1.2;
+      for (let row = 0; row < 5; row++) {
+        ctx.beginPath();
+        const yBase = height * (0.18 + row * 0.16);
+        for (let x = 0; x <= width; x += 8) {
+          const y = yBase + Math.sin(x * 0.018 + time * 0.0015 + row) * (10 + row * 2);
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = row % 2 ? "rgba(255,93,184,0.1)" : "rgba(103,217,255,0.12)";
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function frame(time) {
+      if (document.body.dataset.motion === "low") return;
+      ctx.clearRect(0, 0, width, height);
+      drawGrid();
+      drawWave(time);
+      drawStreams();
+      animationId = requestAnimationFrame(frame);
+    }
+
+    function tickClock() {
+      const now = new Date();
+      clock.textContent = now.toLocaleTimeString("zh-CN", { hour12: false });
+    }
+
+    function setViewMode(mode) {
+      document.body.dataset.view = mode;
+      guestMode.setAttribute("aria-pressed", String(mode === "guest"));
+      localMode.setAttribute("aria-pressed", String(mode === "local"));
+    }
+
+    function setMotionMode(mode) {
+      document.body.dataset.motion = mode;
+      motionToggle.setAttribute("aria-pressed", String(mode === "low"));
+      if (mode === "low") {
+        cancelAnimationFrame(animationId);
+        ctx.clearRect(0, 0, width, height);
+        drawGrid();
+      } else {
+        cancelAnimationFrame(animationId);
+        animationId = requestAnimationFrame(frame);
+      }
+    }
+
+    function activateNode(key) {
+      const detail = nodeDetails[key] || nodeDetails.memory;
+      document.querySelectorAll(".node").forEach((node) => {
+        node.classList.toggle("is-active", node.dataset.node === key);
+      });
+      nodeDetail.innerHTML = `<strong>${detail[0]}</strong>${detail[1]}`;
+    }
+
+    function applyDashboardData(data) {
+      if (!data || !data.summary) return;
+      registryCount.textContent = String(data.summary.registry_projects || 16);
+      runCount.textContent = String(data.summary.runs || 4);
+      if (dataSource) {
+        dataSource.textContent = `数据源：${data.mode || "local-snapshot"} · ${data.generated_at || "unknown"} · ${data.summary.integrate || 0} integrate / ${data.summary.mirror || 0} mirror / ${data.summary.watch || 0} watch`;
+      }
+      const recent = Array.isArray(data.recent) ? data.recent.slice(0, 3) : [];
+      if (recent.length) {
+        const feed = document.querySelector(".feed");
+        const offset = 21;
+        recent.forEach((item, index) => {
+          const line = document.createElement("div");
+          line.className = "feed-line local-only";
+          line.innerHTML = `<code>${String(offset + index * 3).padStart(2, "0")}:00</code><span>${item}</span>`;
+          feed.appendChild(line);
+        });
+      }
+    }
+
+    function inferLocalRisk(goal) {
+      const risky = ["写", "修改", "删除", "执行", "运行", "发送", "邮件", "浏览器", "桌面", "安装", "commit", "push", "deploy"];
+      const hits = risky.filter((word) => goal.toLowerCase().includes(word.toLowerCase()));
+      return {
+        level: hits.length ? "confirm-required" : "read-only",
+        notes: hits.length
+          ? ["涉及写入、命令、外部工具或账号动作时必须先确认。", `触发风险词：${hits.slice(0, 5).join("、")}`]
+          : ["当前可先进行只读理解、检索和规划。"]
+      };
+    }
+
+    function inferLocalCapabilities(goal) {
+      const text = goal.toLowerCase();
+      const options = [
+        ["memory", "长期记忆", "检索或沉淀偏好、项目事实和失败经验。", ["记忆", "偏好", "经验", "memory"]],
+        ["context", "上下文搜索", "搜索本地文件、代码和文档片段。", ["代码", "文件", "上下文", "文档", "context"]],
+        ["github", "GitHub 研究", "查看项目注册表、镜像状态和开源项目风险。", ["github", "仓库", "开源", "项目"]],
+        ["devtools", "浏览器调试", "在确认后分析页面、控制台和网络请求。", ["浏览器", "网页", "页面", "devtools"]],
+        ["workspace", "本地工作区", "生成可追踪工作产物，例如总结、清单和说明文档。", ["整理", "报告", "页面", "文档"]],
+        ["funds", "指数基金教育", "提供教育性配置模板、评分和再平衡提示。", ["基金", "投资", "指数"]]
+      ];
+      const selected = options
+        .filter(([, , , keys]) => keys.some((key) => text.includes(key)))
+        .map(([id, name, reason]) => ({ id, name, reason }));
+      return selected.length ? selected.slice(0, 4) : [
+        { id: "memory", name: "长期记忆", reason: "先检查是否有相关偏好或历史经验。" },
+        { id: "context", name: "上下文搜索", reason: "再搜索本地上下文补齐事实。" },
+        { id: "workspace", name: "本地工作区", reason: "必要时生成可追踪的工作产物。" }
+      ];
+    }
+
+    function localJarvisPlan(goal) {
+      const risk = inferLocalRisk(goal);
+      return {
+        goal,
+        understanding: "我会把这个请求当作个人副脑任务处理：先理解目标，再检索背景，最后给出安全的下一步。",
+        risk_level: risk.level,
+        confirmation_required: risk.level === "confirm-required",
+        confirmation_notes: risk.notes,
+        capabilities: inferLocalCapabilities(goal),
+        memories: [
+          { id: "local", tags: "policy,safety", content: "默认本地优先、确认优先、可追踪优先。" }
+        ],
+        context_matches: [],
+        plan: [
+          "确认任务目标、期望输出和不可触碰边界。",
+          "检索相关长期记忆和本地上下文，优先使用已有事实。",
+          "选择必要能力模块，并把高风险动作拆成确认点。",
+          "先给出可验证的小步计划，再等待用户授权执行。",
+          "完成后记录结果摘要和可复用经验。"
+        ],
+        next_step: "请确认是否进入执行阶段；未确认前不会写文件、运行外部命令、控制浏览器或访问邮箱。",
+        memory_candidate: `用户正在推进 Jarvis 化个人副脑任务：${goal.slice(0, 120)}`
+      };
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function listItems(items, fallback) {
+      if (!items || !items.length) return `<li>${escapeHtml(fallback)}</li>`;
+      return items.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+    }
+
+    function renderJarvisPlan(payload) {
+      const capabilityItems = (payload.capabilities || []).map((item) => `${item.name}：${item.reason}`);
+      const memoryItems = (payload.memories || []).slice(0, 3).map((item) => `#${item.id} [${item.tags}] ${item.content}`);
+      const contextItems = (payload.context_matches || []).slice(0, 3).map((item) => `${item.file}:${item.line} ${item.match}`);
+      jarvisResponse.innerHTML = `
+        <div class="response-card wide"><strong>理解</strong>${escapeHtml(payload.understanding || "已收到任务，我会先规划再行动。")}</div>
+        <div class="response-card"><strong>相关记忆</strong><ul>${listItems(memoryItems, "暂无可展示记忆，先按默认安全策略处理。")}</ul></div>
+        <div class="response-card"><strong>能力路由</strong><ul>${listItems(capabilityItems, "使用默认：记忆、上下文、工作区。")}</ul></div>
+        <div class="response-card wide"><strong>计划</strong><ol>${listItems(payload.plan || [], "生成一个只读计划。")}</ol></div>
+        <div class="response-card"><strong>上下文</strong><ul>${listItems(contextItems, "暂无上下文命中，后续可扩大搜索范围。")}</ul></div>
+        <div class="response-card"><strong>确认边界</strong><ul>${listItems(payload.confirmation_notes || [], "无高风险动作。")}</ul><p class="confirm-note">${payload.confirmation_required ? "需要确认后才能执行。" : "当前为只读规划。"}</p></div>
+        <div class="response-card wide"><strong>下一步</strong>${escapeHtml(payload.next_step || "等待确认。")}<br><br><span class="confirm-note">记忆候选：${escapeHtml(payload.memory_candidate || "无")}</span></div>
+      `;
+    }
+
+    async function requestJarvisPlan(goal) {
+      if (location.protocol.startsWith("http")) {
+        try {
+          const response = await fetch("/api/plan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ goal })
+          });
+          if (response.ok) return response.json();
+        } catch (error) {
+          // Fall back to browser-only planning when the local service is unavailable.
+        }
+      }
+      return localJarvisPlan(goal);
+    }
+
+    async function loadDashboardData() {
+      try {
+        const source = location.protocol.startsWith("http") ? "/api/status" : "brain-dashboard-data.json";
+        const response = await fetch(source, { cache: "no-store" });
+        if (!response.ok) throw new Error("data file unavailable");
+        applyDashboardData(await response.json());
+      } catch (error) {
+        if (dataSource) {
+          dataSource.textContent = "数据源：默认展示值；本地 JSON 快照未加载。";
+        }
+      }
+    }
+
+    guestMode.addEventListener("click", () => setViewMode("guest"));
+    localMode.addEventListener("click", () => setViewMode("local"));
+    motionToggle.addEventListener("click", () => {
+      setMotionMode(document.body.dataset.motion === "low" ? "full" : "low");
+    });
+    document.querySelectorAll(".node").forEach((node) => {
+      node.addEventListener("click", () => activateNode(node.dataset.node));
+    });
+    jarvisForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const goal = jarvisInput.value.trim();
+      if (!goal) {
+        jarvisInput.focus();
+        return;
+      }
+      jarvisResponse.innerHTML = `<div class="response-card wide"><strong>正在规划</strong>正在检索记忆、判断风险并选择能力模块...</div>`;
+      const payload = await requestJarvisPlan(goal);
+      renderJarvisPlan(payload);
+    });
+
+    window.addEventListener("resize", resize);
+    resize();
+    tickClock();
+    setInterval(tickClock, 1000);
+    setViewMode("guest");
+    loadDashboardData();
+    animationId = requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

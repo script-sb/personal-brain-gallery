@@ -1,0 +1,15 @@
+data/*.sqlite
+data/*.sqlite-*
+data/*.json
+third_party/*
+!third_party/.gitkeep
+workspace/*
+!workspace/.gitkeep
+!workspace/personal-brain-hud.html
+!workspace/personal-brain-gallery.html
+!workspace/personal-brain-exhibits.json
+!workspace/brain-dashboard-data.json
+!workspace/personal-brain-intro.md
+__pycache__/
+*.pyc
+.pytest_cache/
