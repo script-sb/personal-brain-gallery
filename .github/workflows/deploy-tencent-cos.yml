@@ -76,6 +76,24 @@ jobs:
             --bucket "personal-brain-gallery-1441292354" \
             --website-configuration file://website.json \
             --cli-read-timeout 60
+
+          aws s3 cp \
+            "s3://personal-brain-gallery-1441292354/index.html" \
+            "s3://personal-brain-gallery-1441292354/index.html" \
+            --endpoint-url "https://cos.ap-guangzhou.myqcloud.com" \
+            --metadata-directive REPLACE \
+            --content-type "text/html; charset=utf-8" \
+            --content-disposition "inline" \
+            --cache-control "no-cache"
+
+          aws s3 cp \
+            "s3://personal-brain-gallery-1441292354/personal-brain-exhibits.json" \
+            "s3://personal-brain-gallery-1441292354/personal-brain-exhibits.json" \
+            --endpoint-url "https://cos.ap-guangzhou.myqcloud.com" \
+            --metadata-directive REPLACE \
+            --content-type "application/json; charset=utf-8" \
+            --content-disposition "inline" \
+            --cache-control "no-cache"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.TENCENT_CLOUD_SECRET_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.TENCENT_CLOUD_SECRET_KEY }}
