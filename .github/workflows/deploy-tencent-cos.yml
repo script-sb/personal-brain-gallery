@@ -107,6 +107,7 @@ jobs:
           python <<'PY'
           import os
           from qcloud_cos import CosConfig, CosS3Client
+          from qcloud_cos.cos_exception import CosServiceError
 
           bucket = "personal-brain-gallery-1441292354"
           region = "ap-guangzhou"
@@ -119,20 +120,31 @@ jobs:
               Scheme="https",
           )
           client = CosS3Client(config)
-          client.put_bucket_domain(
-              Bucket=bucket,
-              DomainConfiguration={
-                  "DomainRule": [
-                      {
-                          "Name": domain,
-                          "Type": "WEBSITE",
-                          "Status": "ENABLED",
-                          "ForcedReplacement": "CNAME",
-                      }
-                  ]
-              },
-          )
-          print(f"Bound {domain} to {bucket} as WEBSITE endpoint.")
+          try:
+              client.put_bucket_domain(
+                  Bucket=bucket,
+                  DomainConfiguration={
+                      "DomainRule": [
+                          {
+                              "Name": domain,
+                              "Type": "WEBSITE",
+                              "Status": "ENABLED",
+                              "ForcedReplacement": "CNAME",
+                          }
+                      ]
+                  },
+              )
+              print(f"Bound {domain} to {bucket} as WEBSITE endpoint.")
+          except CosServiceError as exc:
+              if exc.get_error_code() == "DomainAuditFailed":
+                  print(
+                      "::warning::Tencent COS rejected the custom domain because "
+                      "the domain has no ICP filing for Mainland China. "
+                      "The COS website deployment still succeeded; bind the domain "
+                      "after ICP filing, or deploy to a non-Mainland region."
+                  )
+              else:
+                  raise
           PY
         env:
           TENCENT_CLOUD_SECRET_ID: ${{ secrets.TENCENT_CLOUD_SECRET_ID }}
